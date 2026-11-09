@@ -110,7 +110,7 @@ Settings → Personalization → Taskbar → Taskbar behaviors → **Automatical
 | `Ctrl+Alt+H` / tray → *Hide notch* | Tucks the notch away completely; press again (or `Ctrl+Alt+N`, or click the tray icon) to bring it back |
 | Tray icon | All the settings below |
 
-The pill itself reacts: it squishes when you click it, does a quick squash-and-stretch when the pointer arrives, the active tab's highlight slides between tabs, hover highlights fade in and out, animation is paced to your screen's refresh rate, glows with the music (following the real output level), gives a heartbeat flash when you copy a link, and bursts into confetti when the focus timer ends.
+The pill itself reacts: it squishes when you click it, does a quick squash-and-stretch when the pointer arrives, the active tab's highlight slides between tabs, hover highlights fade in and out, animation is paced to your screen's refresh rate, glows with the music (following the real output level; tray → *Glow with the music*, `music_glow`, on by default — turn it off if the pulsing is distracting, for example while watching video), gives a heartbeat flash when you copy a link, and bursts into confetti when the focus timer ends.
 
 ### Pages (tab row at the top)
 

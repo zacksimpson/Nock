@@ -1305,6 +1305,15 @@ impl App {
         }
     }
 
+    /// Tray: the collapsed pill glows with the music's output level, or stays plain.
+    pub fn toggle_music_glow(&mut self) {
+        self.cfg.music_glow = !self.cfg.music_glow;
+        store::save_config(&self.cfg);
+        if !self.hidden {
+            self.render();
+        }
+    }
+
     /// This page's bit in `cfg.hidden_tabs`, keyed by its index in `PAGES`.
     fn tab_bit(p: Page) -> u16 {
         1 << PAGES.iter().position(|x| *x == p).unwrap()

@@ -42,6 +42,11 @@ pub fn draw(a: &App, w: f32, h: f32, hits: &mut Vec<Hit>) {
     if beat > 0.01 {
         g.stroke_rrect(body, rad, Color(1.0, 0.4, 0.5, 0.85 * beat), 2.5);
     }
+    if a.cfg.music_glow && a.level > 0.01 && t < 0.05 {
+        // music glow: the pill's rim and fill breathe with the output level
+        g.fill_rrect(body, rad, a.accent.fade(0.03 + 0.15 * a.level));
+        g.stroke_rrect(body, rad, a.accent.fade(0.2 + 0.7 * a.level), 1.0 + 2.2 * a.level);
+    }
     if a.alerting() && t < 0.05 {
         let pulse = 0.5 + 0.5 * (a.eq_phase * 0.9).sin();
         // important hints get their own strong colour so they read from the corner of the eye

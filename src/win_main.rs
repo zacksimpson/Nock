@@ -420,6 +420,8 @@ fn on_tray(hwnd: HWND, a: &mut App, lp: LPARAM) {
             }
             let _ = AppendMenuW(menu, MF_POPUP, sub.0 as usize, w!("Tabs"));
         }
+        let mg = if a.cfg.music_glow { MF_CHECKED } else { MF_UNCHECKED };
+        let _ = AppendMenuW(menu, MF_STRING | mg, 140, w!("Glow with the music"));
         let tb = if a.cfg.top_bar { MF_CHECKED } else { MF_UNCHECKED };
         let _ = AppendMenuW(menu, MF_STRING | tb, 7, w!("Top bar"));
         let st = if a.cfg.stats { MF_CHECKED } else { MF_UNCHECKED };
@@ -574,6 +576,7 @@ fn on_tray(hwnd: HWND, a: &mut App, lp: LPARAM) {
             133 => a.toggle_tab_hidden(app::Page::Shelf),
             134 => a.toggle_tab_hidden(app::Page::Apps),
             135 => a.toggle_tab_hidden(app::Page::Game),
+            140 => a.toggle_music_glow(),
             13 => a.toggle_auto_break(),
             16 => a.toggle_fs_hide(),
             17 => a.toggle_auto_close(),
