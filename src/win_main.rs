@@ -404,6 +404,8 @@ fn on_tray(hwnd: HWND, a: &mut App, lp: LPARAM) {
         );
         let c24 = if a.cfg.clock_24h { MF_CHECKED } else { MF_UNCHECKED };
         let _ = AppendMenuW(menu, MF_STRING | c24, 11, w!("24-hour clock"));
+        let sc = if a.cfg.show_clock { MF_CHECKED } else { MF_UNCHECKED };
+        let _ = AppendMenuW(menu, MF_STRING | sc, 120, w!("Show date and time on the notch"));
         let tb = if a.cfg.top_bar { MF_CHECKED } else { MF_UNCHECKED };
         let _ = AppendMenuW(menu, MF_STRING | tb, 7, w!("Top bar"));
         let st = if a.cfg.stats { MF_CHECKED } else { MF_UNCHECKED };
@@ -551,6 +553,7 @@ fn on_tray(hwnd: HWND, a: &mut App, lp: LPARAM) {
             7 => a.toggle_top_bar(),
             10 => a.toggle_stats(),
             11 => a.toggle_clock24(),
+            120 => a.toggle_show_clock(),
             13 => a.toggle_auto_break(),
             16 => a.toggle_fs_hide(),
             17 => a.toggle_auto_close(),

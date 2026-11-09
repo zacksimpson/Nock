@@ -1276,6 +1276,15 @@ impl App {
         self.render();
     }
 
+    /// Tray: show the date and time on the idle notch, or leave it plain black.
+    pub fn toggle_show_clock(&mut self) {
+        self.cfg.show_clock = !self.cfg.show_clock;
+        store::save_config(&self.cfg);
+        if !self.hidden {
+            self.render();
+        }
+    }
+
     pub fn set_clock_style(&mut self, n: u8) {
         self.cfg.clock_style = n.min(3);
         store::save_config(&self.cfg);

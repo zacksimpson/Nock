@@ -42,12 +42,6 @@ pub fn draw(a: &App, w: f32, h: f32, hits: &mut Vec<Hit>) {
     if beat > 0.01 {
         g.stroke_rrect(body, rad, Color(1.0, 0.4, 0.5, 0.85 * beat), 2.5);
     }
-    if a.level > 0.01 && t < 0.05 {
-        // music glow: the pill's rim and fill breathe with the output level
-        g.fill_rrect(body, rad, a.accent.fade(0.03 + 0.15 * a.level));
-        g.stroke_rrect(body, rad, a.accent.fade(0.2 + 0.7 * a.level), 1.0 + 2.2 * a.level);
-    }
-
     if a.alerting() && t < 0.05 {
         let pulse = 0.5 + 0.5 * (a.eq_phase * 0.9).sin();
         // important hints get their own strong colour so they read from the corner of the eye
@@ -221,55 +215,57 @@ fn draw_collapsed(a: &App, w: f32, ca: f32) {
             Align::Left,
         );
     } else {
-        let (_, _, _, _, hh, mm, _, _) = sys::local_time();
-        let label = if a.cfg.clock_24h {
-            format!("{:02}:{:02}", hh, mm)
-        } else {
-            let (h12, ampm) = match hh {
-                0 => (12, "AM"),
-                1..=11 => (hh, "AM"),
-                12 => (12, "PM"),
-                _ => (hh - 12, "PM"),
-            };
-            format!("{}:{:02} {}", h12, mm, ampm)
-        };
-        const DAYS: [&str; 7] = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-        let (_, _, day, wday, ..) = sys::local_time();
-        // date | time, centred as a pair; the time is the bold part
-        let (dw, tw) = (50.0, if a.cfg.clock_24h { 44.0 } else { 70.0 });
-        let glance = a.glance();
-        let gw = glance.as_ref().map_or(0.0, |(_, gw)| gw + 16.0);
-        let x0 = (w - (dw + 15.0 + tw + gw)) / 2.0;
-        g.text(&format!("{} {}", DAYS[(wday as usize).min(6)], day), Rect::new(x0, 0.0, dw, ch), &f.small, T3.fade(ca), Align::Right);
-        g.fill_rrect(Rect::new(x0 + dw + 7.0, ch / 2.0 - 7.0, 1.0, 14.0), 0.5, Color::white(0.18 * ca));
-        g.text(&label, Rect::new(x0 + dw + 15.0, 0.0, tw, ch), &f.menu, T1.fade(ca), Align::Left);
-        if let Some((txt, gwid)) = glance {
-            // optional glance: separator, then secondary-colour text (tasks get a small checkbox)
-            let sx = x0 + dw + 15.0 + tw + 7.0;
-            g.fill_rrect(Rect::new(sx, ch / 2.0 - 7.0, 1.0, 14.0), 0.5, Color::white(0.18 * ca));
-            let mut gx = sx + 9.0;
-            let kind = a.glance_kind();
-            if kind == 1 {
-                g.icon('\u{E73A}', Rect::new(gx, 0.0, 16.0, ch), &f.icon14, T2.fade(ca));
-                gx += 19.0;
-            }
-            // the next meeting is dimmer than the other glances
-            let gcol = if kind == 4 { Color(0.55, 0.53, 0.49, ca) } else { T2.fade(ca) };
-            g.text(&txt, Rect::new(gx, 0.0, gwid, ch), &f.small, gcol, Align::Left);
-        }
-        if a.cycle_dots() {
-            // page dots while cycling: the active page in blue, the others grey
-            let active = a.cycle as usize % 4;
-            for i in 0..4 {
-                let c = if i == active { Color(DEFAULT_ACCENT.0, DEFAULT_ACCENT.1, DEFAULT_ACCENT.2, ca) } else { Color(0.267, 0.267, 0.267, ca) };
-                g.fill_circle(w / 2.0 - 12.0 + i as f32 * 8.0, ch - 4.0, 2.0, c);
-            }
-        } else if a.cfg.day_line {
+        if a.cfg.show_clock {
             let (_, _, _, _, hh, mm, _, _) = sys::local_time();
-            if let Some(frac) = crate::app::day_fraction(hh, mm, a.cfg.day_start, a.cfg.day_end) {
-                let (x, len, y) = (14.0, (w - 28.0).max(1.0), ch - 5.0);
-                g.fill_rrect(Rect::new(x, y, len, 2.0), 1.0, Color(0.15, 0.15, 0.165, ca));
-                g.fill_rrect(Rect::new(x, y, (len * frac).max(2.0), 2.0), 1.0, Color(0.55, 0.53, 0.49, ca));
+            let label = if a.cfg.clock_24h {
+                format!("{:02}:{:02}", hh, mm)
+            } else {
+                let (h12, ampm) = match hh {
+                    0 => (12, "AM"),
+                    1..=11 => (hh, "AM"),
+                    12 => (12, "PM"),
+                    _ => (hh - 12, "PM"),
+                };
+                format!("{}:{:02} {}", h12, mm, ampm)
+            };
+            const DAYS: [&str; 7] = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+            let (_, _, day, wday, ..) = sys::local_time();
+            // date | time, centred as a pair; the time is the bold part
+            let (dw, tw) = (50.0, if a.cfg.clock_24h { 44.0 } else { 70.0 });
+            let glance = a.glance();
+            let gw = glance.as_ref().map_or(0.0, |(_, gw)| gw + 16.0);
+            let x0 = (w - (dw + 15.0 + tw + gw)) / 2.0;
+            g.text(&format!("{} {}", DAYS[(wday as usize).min(6)], day), Rect::new(x0, 0.0, dw, ch), &f.small, T3.fade(ca), Align::Right);
+            g.fill_rrect(Rect::new(x0 + dw + 7.0, ch / 2.0 - 7.0, 1.0, 14.0), 0.5, Color::white(0.18 * ca));
+            g.text(&label, Rect::new(x0 + dw + 15.0, 0.0, tw, ch), &f.menu, T1.fade(ca), Align::Left);
+            if let Some((txt, gwid)) = glance {
+                // optional glance: separator, then secondary-colour text (tasks get a small checkbox)
+                let sx = x0 + dw + 15.0 + tw + 7.0;
+                g.fill_rrect(Rect::new(sx, ch / 2.0 - 7.0, 1.0, 14.0), 0.5, Color::white(0.18 * ca));
+                let mut gx = sx + 9.0;
+                let kind = a.glance_kind();
+                if kind == 1 {
+                    g.icon('\u{E73A}', Rect::new(gx, 0.0, 16.0, ch), &f.icon14, T2.fade(ca));
+                    gx += 19.0;
+                }
+                // the next meeting is dimmer than the other glances
+                let gcol = if kind == 4 { Color(0.55, 0.53, 0.49, ca) } else { T2.fade(ca) };
+                g.text(&txt, Rect::new(gx, 0.0, gwid, ch), &f.small, gcol, Align::Left);
+            }
+            if a.cycle_dots() {
+                // page dots while cycling: the active page in blue, the others grey
+                let active = a.cycle as usize % 4;
+                for i in 0..4 {
+                    let c = if i == active { Color(DEFAULT_ACCENT.0, DEFAULT_ACCENT.1, DEFAULT_ACCENT.2, ca) } else { Color(0.267, 0.267, 0.267, ca) };
+                    g.fill_circle(w / 2.0 - 12.0 + i as f32 * 8.0, ch - 4.0, 2.0, c);
+                }
+            } else if a.cfg.day_line {
+                let (_, _, _, _, hh, mm, _, _) = sys::local_time();
+                if let Some(frac) = crate::app::day_fraction(hh, mm, a.cfg.day_start, a.cfg.day_end) {
+                    let (x, len, y) = (14.0, (w - 28.0).max(1.0), ch - 5.0);
+                    g.fill_rrect(Rect::new(x, y, len, 2.0), 1.0, Color(0.15, 0.15, 0.165, ca));
+                    g.fill_rrect(Rect::new(x, y, (len * frac).max(2.0), 2.0), 1.0, Color(0.55, 0.53, 0.49, ca));
+                }
             }
         }
     }
