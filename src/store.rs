@@ -42,6 +42,10 @@ pub struct Config {
     pub eq_animation: bool,
     /// Idle pill shows 13:05 instead of 1:05 PM.
     pub clock_24h: bool,
+    /// Date and time on the idle notch; off leaves the notch plain black.
+    pub show_clock: bool,
+    /// The collapsed pill's rim and fill breathe with the music's output level.
+    pub music_glow: bool,
     /// Reserve a strip at the top of the screen so maximised windows sit below the notch.
     pub reserve_space: bool,
     /// Full-width status bar along the top; the notch hangs from it.
@@ -104,6 +108,10 @@ const DEFAULT_CONFIG: &str = "\
 hover_expand=0
 eq_animation=1
 clock_24h=0
+# date and time on the idle notch: 0 = off (plain black notch when idle)
+show_clock=1
+# collapsed pill glows with the music's output level: 1 = on
+music_glow=1
 reserve_space=0
 top_bar=1
 # buddy: 0 = off, 2 = cat, 5 = robot, 6 = ronin, 7 = courier, 8 = necromancer (1, 3 and 4 were retired and now give the robot)
@@ -172,6 +180,8 @@ pub fn load_config() -> Config {
         hover_expand: false,
         eq_animation: true,
         clock_24h: false,
+        show_clock: true,
+        music_glow: true,
         reserve_space: false,
         top_bar: true,
         buddy: 5,
@@ -212,6 +222,8 @@ pub fn load_config() -> Config {
                 "hover_expand" => cfg.hover_expand = on,
                 "eq_animation" => cfg.eq_animation = on,
                 "clock_24h" => cfg.clock_24h = on,
+                "show_clock" => cfg.show_clock = on,
+                "music_glow" => cfg.music_glow = on,
                 "reserve_space" => cfg.reserve_space = on,
                 "top_bar" => cfg.top_bar = on,
                 "scenes" => cfg.scenes = on,
@@ -251,7 +263,7 @@ pub fn load_config() -> Config {
     }
     // A config file from an older version lacks the newer settings: write the
     // file back with every setting present (keeping the user's values).
-    let keys = ["hover_expand", "eq_animation", "clock_24h", "reserve_space", "top_bar", "buddy", "scenes", "scene_min", "stats", "clock_style", "water_min", "auto_break", "eye_min", "start_menu", "fs_hide", "auto_hide", "smart_hide", "auto_close", "smart", "calendar_url", "smart_sound", "monitor", "idle_glance", "idle_focus_bar", "idle_meeting_hours", "day_line", "day_start", "day_end", "idle_cycle", "state_dot", "peek"];
+    let keys = ["hover_expand", "eq_animation", "clock_24h", "show_clock", "music_glow", "reserve_space", "top_bar", "buddy", "scenes", "scene_min", "stats", "clock_style", "water_min", "auto_break", "eye_min", "start_menu", "fs_hide", "auto_hide", "smart_hide", "auto_close", "smart", "calendar_url", "smart_sound", "monitor", "idle_glance", "idle_focus_bar", "idle_meeting_hours", "day_line", "day_start", "day_end", "idle_cycle", "state_dot", "peek"];
     let present = |k: &str| text.lines().any(|l| l.trim().split_once('=').map(|(a, _)| a.trim() == k).unwrap_or(false));
     if keys.iter().any(|k| !present(k)) {
         save_config(&cfg);
@@ -262,10 +274,12 @@ pub fn load_config() -> Config {
 pub fn save_config(c: &Config) {
     let b = |v: bool| if v { 1 } else { 0 };
     let text = format!(
-        "# Nock settings (1 = on, 0 = off)\nhover_expand={}\neq_animation={}\nclock_24h={}\nreserve_space={}\ntop_bar={}\n# buddy: 0 = off, 2 = cat, 5 = robot, 6 = ronin, 7 = courier, 8 = necromancer (1, 3 and 4 were retired and now give the robot)\nbuddy={}\n# fight scenes now and then (needs a buddy): 1 = on\nscenes={}\n# average minutes between scenes (1 to 60)\nscene_min={}\n# CPU and memory read-out on the top bar: 1 = on\nstats={}\n# top bar clock: 0 = digital, 1 = analog, 2 = binary, 3 = countdown to Friday\nclock_style={}\n# minutes between water reminders (0 = off)\nwater_min={}\n# after a focus session start a 5 minute break, then focus again: 1 = on\nauto_break={}\n# minutes between look-away reminders for your eyes (0 = off)\neye_min={}\n# a Start Menu shortcut so typing Nock in Windows search finds it: 1 = on\nstart_menu={}\n# hide the notch and bar while a full-screen app or game is in front: 1 = on\nfs_hide={}\n# keep the notch and bar hidden until the pointer touches the top edge: 1 = on\nauto_hide={}\n# fade the notch out while a window covers it, and back in when the window moves away: 1 = on\nsmart_hide={}\n# close the open panel when the pointer leaves it or another window comes to the front: 1 = on\nauto_close={}\n# smart notch hints (low battery, take a break after 90 min at the PC, link/code copied): 1 = on\nsmart={}\n# calendar link (Google: Settings > your calendar > Secret address in iCal format) for meeting hints; empty = off\ncalendar_url={}\n# a short chime with meeting, low battery and break hints: 1 = on\nsmart_sound={}\n# display for the notch and bar: 0 = primary, 2 = second display, and so on\nmonitor={}\n# extra beside the idle clock: 0 = off, 1 = tasks left, 2 = focus minutes today, 3 = CPU and RAM, 4 = next meeting\nidle_glance={}\n# progress line on the notch while a focus session runs: 1 = on\nidle_focus_bar={}\n# next meeting glance (idle_glance=4) shows meetings starting within this many hours (1 to 12)\nidle_meeting_hours={}\n# thin line along the bottom of the idle notch: how much of your workday has passed: 1 = on\nday_line={}\n# workday for the day line, in hours (0 to 24)\nday_start={}\nday_end={}\n# scroll up over the idle notch cycles time, date, tasks left and focus today: 1 = on\nidle_cycle={}\n# a state glyph on the notch: dot, ring (mic in use), amber square (battery low), arc (focus session): 1 = on\nstate_dot={}\n# now and then the buddy peeks over the bottom edge of the notch (robot and kitty): 1 = on\npeek={}\n",
+        "# Nock settings (1 = on, 0 = off)\nhover_expand={}\neq_animation={}\nclock_24h={}\n# date and time on the idle notch: 0 = off (plain black notch when idle)\nshow_clock={}\n# collapsed pill glows with the music's output level: 1 = on\nmusic_glow={}\nreserve_space={}\ntop_bar={}\n# buddy: 0 = off, 2 = cat, 5 = robot, 6 = ronin, 7 = courier, 8 = necromancer (1, 3 and 4 were retired and now give the robot)\nbuddy={}\n# fight scenes now and then (needs a buddy): 1 = on\nscenes={}\n# average minutes between scenes (1 to 60)\nscene_min={}\n# CPU and memory read-out on the top bar: 1 = on\nstats={}\n# top bar clock: 0 = digital, 1 = analog, 2 = binary, 3 = countdown to Friday\nclock_style={}\n# minutes between water reminders (0 = off)\nwater_min={}\n# after a focus session start a 5 minute break, then focus again: 1 = on\nauto_break={}\n# minutes between look-away reminders for your eyes (0 = off)\neye_min={}\n# a Start Menu shortcut so typing Nock in Windows search finds it: 1 = on\nstart_menu={}\n# hide the notch and bar while a full-screen app or game is in front: 1 = on\nfs_hide={}\n# keep the notch and bar hidden until the pointer touches the top edge: 1 = on\nauto_hide={}\n# fade the notch out while a window covers it, and back in when the window moves away: 1 = on\nsmart_hide={}\n# close the open panel when the pointer leaves it or another window comes to the front: 1 = on\nauto_close={}\n# smart notch hints (low battery, take a break after 90 min at the PC, link/code copied): 1 = on\nsmart={}\n# calendar link (Google: Settings > your calendar > Secret address in iCal format) for meeting hints; empty = off\ncalendar_url={}\n# a short chime with meeting, low battery and break hints: 1 = on\nsmart_sound={}\n# display for the notch and bar: 0 = primary, 2 = second display, and so on\nmonitor={}\n# extra beside the idle clock: 0 = off, 1 = tasks left, 2 = focus minutes today, 3 = CPU and RAM, 4 = next meeting\nidle_glance={}\n# progress line on the notch while a focus session runs: 1 = on\nidle_focus_bar={}\n# next meeting glance (idle_glance=4) shows meetings starting within this many hours (1 to 12)\nidle_meeting_hours={}\n# thin line along the bottom of the idle notch: how much of your workday has passed: 1 = on\nday_line={}\n# workday for the day line, in hours (0 to 24)\nday_start={}\nday_end={}\n# scroll up over the idle notch cycles time, date, tasks left and focus today: 1 = on\nidle_cycle={}\n# a state glyph on the notch: dot, ring (mic in use), amber square (battery low), arc (focus session): 1 = on\nstate_dot={}\n# now and then the buddy peeks over the bottom edge of the notch (robot and kitty): 1 = on\npeek={}\n",
         b(c.hover_expand),
         b(c.eq_animation),
         b(c.clock_24h),
+        b(c.show_clock),
+        b(c.music_glow),
         b(c.reserve_space),
         b(c.top_bar),
         c.buddy,
