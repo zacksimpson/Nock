@@ -406,6 +406,20 @@ fn on_tray(hwnd: HWND, a: &mut App, lp: LPARAM) {
         let _ = AppendMenuW(menu, MF_STRING | c24, 11, w!("24-hour clock"));
         let sc = if a.cfg.show_clock { MF_CHECKED } else { MF_UNCHECKED };
         let _ = AppendMenuW(menu, MF_STRING | sc, 120, w!("Show date and time on the notch"));
+        if let Ok(sub) = CreatePopupMenu() {
+            for (id, p, name) in [
+                (130, app::Page::Tasks, w!("Today")),
+                (131, app::Page::Stats, w!("Stats")),
+                (132, app::Page::Clipboard, w!("Clipboard")),
+                (133, app::Page::Shelf, w!("Shelf")),
+                (134, app::Page::Apps, w!("Apps")),
+                (135, app::Page::Game, w!("Games")),
+            ] {
+                let on = if a.tab_hidden(p) { MF_UNCHECKED } else { MF_CHECKED };
+                let _ = AppendMenuW(sub, MF_STRING | on, id, name);
+            }
+            let _ = AppendMenuW(menu, MF_POPUP, sub.0 as usize, w!("Tabs"));
+        }
         let tb = if a.cfg.top_bar { MF_CHECKED } else { MF_UNCHECKED };
         let _ = AppendMenuW(menu, MF_STRING | tb, 7, w!("Top bar"));
         let st = if a.cfg.stats { MF_CHECKED } else { MF_UNCHECKED };
@@ -554,6 +568,12 @@ fn on_tray(hwnd: HWND, a: &mut App, lp: LPARAM) {
             10 => a.toggle_stats(),
             11 => a.toggle_clock24(),
             120 => a.toggle_show_clock(),
+            130 => a.toggle_tab_hidden(app::Page::Tasks),
+            131 => a.toggle_tab_hidden(app::Page::Stats),
+            132 => a.toggle_tab_hidden(app::Page::Clipboard),
+            133 => a.toggle_tab_hidden(app::Page::Shelf),
+            134 => a.toggle_tab_hidden(app::Page::Apps),
+            135 => a.toggle_tab_hidden(app::Page::Game),
             13 => a.toggle_auto_break(),
             16 => a.toggle_fs_hide(),
             17 => a.toggle_auto_close(),

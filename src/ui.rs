@@ -387,19 +387,18 @@ pub fn squash(jiggle: f32) -> (f32, f32) {
     (a.0 + (b.0 - a.0) * k, a.1 + (b.1 - a.1) * k)
 }
 
-const TAB_LABELS: [&str; 9] = ["Media", "Controls", "Today", "Stats", "Clipboard", "Shelf", "Apps", "Games", "Power"];
-
-/// Where each tab sits in the top row, in the same order as `PAGES`.
-pub fn tab_rects() -> Vec<Rect> {
+/// Where each tab sits in the top row, for the given (visible) pages, in order.
+pub fn tab_rects(pages: &[Page]) -> Vec<Rect> {
     // rough text width: narrow letters count less, so the gaps between tabs look even
     let text_w = |s: &str| -> f32 {
         s.chars().map(|c| match c { 'i' | 'l' | 't' | 'f' | 'j' | 'r' | 'I' => 3.4, 'm' | 'w' | 'M' | 'W' => 9.6, _ => 6.7 }).sum()
     };
-    let widths: Vec<f32> = TAB_LABELS.iter().map(|l| text_w(l) + 16.0).collect();
+    let widths: Vec<f32> = pages.iter().map(|p| text_w(tab_label(*p)) + 16.0).collect();
     let total: f32 = widths.iter().sum();
     let (left, right) = (46.0, EXP_W - 46.0);
-    let gap = ((right - left - total) / (TAB_LABELS.len() as f32 - 1.0)).clamp(2.0, 12.0);
-    let used = total + gap * (TAB_LABELS.len() as f32 - 1.0);
+    let n = (pages.len() as f32 - 1.0).max(1.0);
+    let gap = ((right - left - total) / n).clamp(2.0, 12.0);
+    let used = total + gap * n;
     let mut x = left + (right - left - used) / 2.0;
     widths
         .iter()
@@ -427,10 +426,11 @@ fn draw_expanded(a: &App, ca: f32, hits: &mut Vec<Hit>) {
 
     // the active-tab highlight slides from tab to tab; each label takes the accent
     // colour in proportion to how much of the highlight is behind it
-    let rects = tab_rects();
+    let visible = a.visible_pages();
+    let rects = tab_rects(&visible);
     let pill = Rect::new(a.tab_x, 8.0, a.tab_w, 28.0);
     g.fill_rrect(pill, 14.0, a.accent.fade(0.20 * ca));
-    for (i, p) in PAGES.iter().enumerate() {
+    for (i, p) in visible.iter().enumerate() {
         let r = rects[i];
         let act = Act::Tab(*p);
         hits.push(Hit { r, act });
@@ -440,7 +440,7 @@ fn draw_expanded(a: &App, ca: f32, hits: &mut Vec<Hit>) {
         }
         let covered = ((pill.x + pill.w).min(r.x + r.w) - pill.x.max(r.x)).max(0.0) / r.w;
         let col = mix(mix(T3, T2, k), a.accent, covered);
-        g.text(TAB_LABELS[i], r, &f.small, col.fade(ca), Align::Center);
+        g.text(tab_label(*p), r, &f.small, col.fade(ca), Align::Center);
     }
 
     // the page itself, moved below the tab row; its hit boxes move with it

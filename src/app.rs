@@ -145,6 +145,26 @@ pub const PAGES: [Page; 9] = [
     Page::Power,
 ];
 
+/// The tab row's label for a page.
+pub fn tab_label(p: Page) -> &'static str {
+    match p {
+        Page::Media => "Media",
+        Page::Controls => "Controls",
+        Page::Tasks => "Today",
+        Page::Stats => "Stats",
+        Page::Clipboard => "Clipboard",
+        Page::Shelf => "Shelf",
+        Page::Apps => "Apps",
+        Page::Game => "Games",
+        Page::Power => "Power",
+    }
+}
+
+/// Media, Controls and Power always stay in the tab row; the rest can be hidden.
+pub fn tab_hideable(p: Page) -> bool {
+    !matches!(p, Page::Media | Page::Controls | Page::Power)
+}
+
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum Act {
     Collapse,
@@ -1285,6 +1305,40 @@ impl App {
         }
     }
 
+    /// This page's bit in `cfg.hidden_tabs`, keyed by its index in `PAGES`.
+    fn tab_bit(p: Page) -> u16 {
+        1 << PAGES.iter().position(|x| *x == p).unwrap()
+    }
+
+    /// True when `p` is hidden from the tab row.
+    pub fn tab_hidden(&self, p: Page) -> bool {
+        tab_hideable(p) && self.cfg.hidden_tabs & Self::tab_bit(p) != 0
+    }
+
+    /// Tabs shown in the panel's tab row right now, in `PAGES` order.
+    pub fn visible_pages(&self) -> Vec<Page> {
+        PAGES.into_iter().filter(|p| !self.tab_hidden(*p)).collect()
+    }
+
+    /// Tray: Tabs submenu. Hides or shows one tab; if it was the open one, switches
+    /// to the first tab still visible.
+    pub fn toggle_tab_hidden(&mut self, p: Page) {
+        if !tab_hideable(p) {
+            return;
+        }
+        self.cfg.hidden_tabs ^= Self::tab_bit(p);
+        store::save_config(&self.cfg);
+        if self.page == p && self.tab_hidden(p) {
+            if let Some(np) = self.visible_pages().first().copied() {
+                self.select_page(np);
+            }
+        }
+        if self.expanded {
+            self.snap_tab();
+            self.render();
+        }
+    }
+
     pub fn set_clock_style(&mut self, n: u8) {
         self.cfg.clock_style = n.min(3);
         store::save_config(&self.cfg);
@@ -1698,9 +1752,10 @@ impl App {
         }
         if y < crate::ui::CONTENT_Y {
             // over the tab row: switch pages
-            let i = PAGES.iter().position(|p| *p == self.page).unwrap_or(0) as i32;
-            let n = (i + if delta < 0 { 1 } else { -1 }).clamp(0, PAGES.len() as i32 - 1);
-            self.select_page(PAGES[n as usize]);
+            let visible = self.visible_pages();
+            let i = visible.iter().position(|p| *p == self.page).unwrap_or(0) as i32;
+            let n = (i + if delta < 0 { 1 } else { -1 }).clamp(0, visible.len() as i32 - 1);
+            self.select_page(visible[n as usize]);
         } else if self.page == Page::Apps && self.picking {
             let max = self.app_view().len().saturating_sub(PICK_ROWS);
             self.app_scroll = if delta < 0 { (self.app_scroll + 1).min(max) } else { self.app_scroll.saturating_sub(1) };
@@ -2304,8 +2359,9 @@ impl App {
 
     /// Put the tab highlight straight under the current page (no slide).
     pub(crate) fn snap_tab(&mut self) {
-        if let Some(i) = PAGES.iter().position(|p| *p == self.page) {
-            let r = crate::ui::tab_rects()[i];
+        let visible = self.visible_pages();
+        if let Some(i) = visible.iter().position(|p| *p == self.page) {
+            let r = crate::ui::tab_rects(&visible)[i];
             self.tab_x = r.x;
             self.tab_w = r.w;
         }
@@ -2319,8 +2375,9 @@ impl App {
             return fading;
         }
         let mut busy = false;
-        if let Some(i) = PAGES.iter().position(|p| *p == self.page) {
-            let r = crate::ui::tab_rects()[i];
+        let visible = self.visible_pages();
+        if let Some(i) = visible.iter().position(|p| *p == self.page) {
+            let r = crate::ui::tab_rects(&visible)[i];
             let k = (dt * 20.0).min(1.0);
             self.tab_x += (r.x - self.tab_x) * k;
             self.tab_w += (r.w - self.tab_w) * k;
